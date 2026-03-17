@@ -17,7 +17,7 @@ public class CookieService {
         return ResponseCookie.from("access_token", token)
                 .httpOnly(true)
                 .secure(secure)
-                .sameSite("Lax")
+                .sameSite("None")
                 .path("/")
                 .maxAge(expiration / 1000)
                 .build();
@@ -27,7 +27,7 @@ public class CookieService {
         return ResponseCookie.from("access_token", "")
                 .httpOnly(true)
                 .secure(secure)
-                .sameSite("Lax")
+                .sameSite("None")
                 .path("/")
                 .maxAge(0)
                 .build();
