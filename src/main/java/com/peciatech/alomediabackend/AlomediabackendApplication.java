@@ -8,6 +8,9 @@ public class AlomediabackendApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(AlomediabackendApplication.class, args);
+		System.out.println("=================================================");
+		System.out.println("		Application started successfully!		");
+		System.out.println("=================================================");
 	}
 
 }

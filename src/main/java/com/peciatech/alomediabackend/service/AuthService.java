@@ -32,9 +32,6 @@ public class AuthService {
     @Value("${app.recovery-base-url}")
     private String recoveryBaseUrl;
 
-    /**
-     * Registers a new local user and returns a JWT token.
-     */
     public String register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new UserAlreadyExistsException("Email already registered: " + request.getEmail());
@@ -54,9 +51,6 @@ public class AuthService {
         return jwtService.generateToken(saved);
     }
 
-    /**
-     * Authenticates a local user and returns a JWT token.
-     */
     public String login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
@@ -68,10 +62,7 @@ public class AuthService {
         return jwtService.generateToken(user);
     }
 
-    /**
-     * Initiates a password recovery flow: generates a secure token, persists it,
-     * and sends a recovery email.
-     */
+
     public void requestPasswordRecovery(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("No account found with that email"));
@@ -92,9 +83,7 @@ public class AuthService {
         emailService.sendPasswordRecoveryEmail(email, token);
     }
 
-    /**
-     * Validates that a recovery token exists, is not expired, and has not been used.
-     */
+
     public boolean validateRecoveryToken(String token) {
         RecoveryToken recoveryToken = recoveryTokenRepository.findByToken(token)
                 .orElseThrow(() -> new RecoveryTokenNotFoundException("Recovery token not found"));
@@ -110,9 +99,7 @@ public class AuthService {
         return true;
     }
 
-    /**
-     * Resets the user's password using a validated recovery token.
-     */
+
     public void resetPassword(ResetPasswordRequest request) {
         validateRecoveryToken(request.getToken());
 
@@ -131,10 +118,6 @@ public class AuthService {
         recoveryTokenRepository.save(recoveryToken);
     }
 
-    /**
-     * Returns the current user from a JWT cookie value. Returns null gracefully
-     * if the token is missing, invalid, or the user no longer exists.
-     */
     public User getCurrentUser(String jwtToken) {
         if (jwtToken == null || jwtToken.isBlank()) {
             return null;
