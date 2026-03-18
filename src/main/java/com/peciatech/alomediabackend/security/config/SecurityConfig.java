@@ -49,7 +49,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/auth/recover/reset").permitAll()
                         .requestMatchers("/oauth2/authorize/**").permitAll()
                         .requestMatchers("/login/oauth2/code/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/auth/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/auth/me").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
@@ -84,8 +84,7 @@ public class SecurityConfig {
         config.setAllowCredentials(true);
         config.setAllowedOrigins(List.of(allowedOrigin));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With"));
-        config.setExposedHeaders(List.of("Set-Cookie"));
+        config.setAllowedHeaders(List.of("*"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
