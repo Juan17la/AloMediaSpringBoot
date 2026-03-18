@@ -9,19 +9,13 @@ import com.peciatech.alomediabackend.dto.response.CurrentUserResponse;
 import com.peciatech.alomediabackend.dto.response.RecoveryValidationResponse;
 import com.peciatech.alomediabackend.entity.User;
 import com.peciatech.alomediabackend.mapper.UserMapper;
-import com.peciatech.alomediabackend.security.cookie.CookieService;
 import com.peciatech.alomediabackend.service.AuthService;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Arrays;
 
 @RestController
 @RequestMapping("/auth")
@@ -30,37 +24,29 @@ public class AuthController {
 
     private final AuthService authService;
     private final UserMapper userMapper;
-    private final CookieService cookieService;
 
-    // Registration & Login 
+    // Registration & Login
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request,
-                                                  HttpServletResponse response) {
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         String token = authService.register(request);
-        response.addHeader(HttpHeaders.SET_COOKIE,
-                cookieService.createAuthCookie(token).toString());
-
         User user = authService.getCurrentUser(token);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(userMapper.toAuthResponse(user));
+        AuthResponse body = userMapper.toAuthResponse(user);
+        body.setToken(token);
+        return ResponseEntity.status(HttpStatus.CREATED).body(body);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request,
-                                              HttpServletResponse response) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         String token = authService.login(request);
-        response.addHeader(HttpHeaders.SET_COOKIE,
-                cookieService.createAuthCookie(token).toString());
-
         User user = authService.getCurrentUser(token);
-        return ResponseEntity.ok(userMapper.toAuthResponse(user));
+        AuthResponse body = userMapper.toAuthResponse(user);
+        body.setToken(token);
+        return ResponseEntity.ok(body);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletResponse response) {
-        response.addHeader(HttpHeaders.SET_COOKIE,
-                cookieService.createClearCookie().toString());
+    public ResponseEntity<Void> logout() {
         return ResponseEntity.ok().build();
     }
 
@@ -97,14 +83,8 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<CurrentUserResponse> me(HttpServletRequest request) {
-        String token = null;
-        if (request.getCookies() != null) {
-            token = Arrays.stream(request.getCookies())
-                    .filter(c -> "access_token".equals(c.getName()))
-                    .map(Cookie::getValue)
-                    .findFirst()
-                    .orElse(null);
-        }
+        String header = request.getHeader("Authorization");
+        String token = (header != null && header.startsWith("Bearer ")) ? header.substring(7) : null;
 
         User user = authService.getCurrentUser(token);
         if (user != null) {
