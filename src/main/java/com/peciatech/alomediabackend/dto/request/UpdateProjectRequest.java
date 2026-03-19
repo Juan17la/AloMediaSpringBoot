@@ -1,0 +1,19 @@
+package com.peciatech.alomediabackend.dto.request;
+
+import com.peciatech.alomediabackend.enums.ProjectStatus;
+import lombok.*;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class UpdateProjectRequest {
+
+    private String name;
+
+    private String description;
+
+    private String videoData;
+
+    private ProjectStatus status;
+}
