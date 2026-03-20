@@ -13,7 +13,7 @@ public class UpdateProjectRequest {
 
     private String description;
 
-    private String videoData;
+    private String timelineData;
 
     private ProjectStatus status;
 }
