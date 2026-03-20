@@ -25,14 +25,13 @@ public class Project {
     @Column(nullable = false)
     private String name;
 
-    private String description;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ProjectStatus status = ProjectStatus.DRAFT;
 
+    @Lob
     @Column(columnDefinition = "TEXT")
-    private String videoData;
+    private String timelineData;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
