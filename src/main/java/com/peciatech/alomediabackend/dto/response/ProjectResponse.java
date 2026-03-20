@@ -15,11 +15,9 @@ public class ProjectResponse {
 
     private String name;
 
-    private String description;
-
     private ProjectStatus status;
 
-    private String videoData;
+    private String timelineData;
 
     private Long ownerId;
 
