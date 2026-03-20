@@ -22,8 +22,13 @@ public class JwtService {
     private long expiration;
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = Base64.getDecoder().decode(secret);
-        return Keys.hmacShaKeyFor(keyBytes);
+        try {
+            byte[] keyBytes = Base64.getDecoder().decode(secret);
+            return Keys.hmacShaKeyFor(keyBytes);
+        } catch (IllegalArgumentException e) {
+            log.error("JWT_SECRET is not valid Base64. Generate one with: openssl rand -base64 32");
+            throw e;
+        }
     }
 
     public String generateToken(User user) {

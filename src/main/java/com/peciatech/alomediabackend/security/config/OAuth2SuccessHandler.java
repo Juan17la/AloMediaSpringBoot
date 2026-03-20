@@ -1,13 +1,11 @@
 package com.peciatech.alomediabackend.security.config;
 
 import com.peciatech.alomediabackend.exception.OAuth2AuthenticationException;
-import com.peciatech.alomediabackend.security.cookie.CookieService;
 import com.peciatech.alomediabackend.service.OAuth2Service;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -21,7 +19,6 @@ import java.io.IOException;
 public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     private final OAuth2Service oAuth2Service;
-    private final CookieService cookieService;
 
     @Value("${oauth2.frontend-redirect-url}")
     private String frontendRedirectUrl;
@@ -51,8 +48,6 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         String jwt = oAuth2Service.handleOAuth2Login(email, name, provider);
 
-        response.addHeader(HttpHeaders.SET_COOKIE,
-                cookieService.createAuthCookie(jwt).toString());
-        response.sendRedirect(frontendRedirectUrl);
+        response.sendRedirect(frontendRedirectUrl + "?token=" + jwt);
     }
 }
