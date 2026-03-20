@@ -1,7 +1,7 @@
 package com.peciatech.alomediabackend.security.config;
 
-import com.peciatech.alomediabackend.exception.OAuth2AuthenticationException;
-import com.peciatech.alomediabackend.service.OAuth2Service;
+import com.peciatech.alomediabackend.common.exception.OAuth2AuthenticationException;
+import com.peciatech.alomediabackend.auth.service.OAuth2Service;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;

@@ -1,7 +1,7 @@
 package com.peciatech.alomediabackend.security.config;
 
-import com.peciatech.alomediabackend.entity.User;
-import com.peciatech.alomediabackend.repository.UserRepository;
+import com.peciatech.alomediabackend.user.entity.User;
+import com.peciatech.alomediabackend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
