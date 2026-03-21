@@ -1,5 +1,6 @@
 package com.peciatech.alomediabackend.common.exception;
 
+import com.peciatech.alomediabackend.common.exception.InvalidReportFormatException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -60,6 +61,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleTokenAlreadyUsed(RecoveryTokenAlreadyUsedException ex,
                                                                  HttpServletRequest request) {
         return buildResponse(HttpStatus.GONE, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(InvalidReportFormatException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidReportFormat(InvalidReportFormatException ex,
+                                                                    HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
     @ExceptionHandler(PasswordMismatchException.class)
