@@ -17,6 +17,14 @@ public class EmailService {
 
     // I did create an email for sending all the recovery emails...
     // let's hope it works and doesn't end up in spam :D
+    public void sendEmail(String to, String subject, String body) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject(subject);
+        message.setText(body);
+        mailSender.send(message);
+    }
+
     public void sendPasswordRecoveryEmail(String toEmail, String token) {
         String link = recoveryBaseUrl + "?token=" + token;
 
