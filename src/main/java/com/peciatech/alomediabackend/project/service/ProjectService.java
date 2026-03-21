@@ -5,6 +5,10 @@ import com.peciatech.alomediabackend.project.dto.request.CreateProjectRequest;
 import com.peciatech.alomediabackend.project.dto.request.UpdateProjectRequest;
 import com.peciatech.alomediabackend.project.dto.response.ProjectResponse;
 import com.peciatech.alomediabackend.project.entity.Project;
+import com.peciatech.alomediabackend.project.history.ProjectHistoryRepository;
+import com.peciatech.alomediabackend.project.history.ProjectHistoryService;
+import com.peciatech.alomediabackend.project.history.command.CreateProjectHistoryCommand;
+import com.peciatech.alomediabackend.project.history.command.EditProjectHistoryCommand;
 import com.peciatech.alomediabackend.project.repository.ProjectRepository;
 import com.peciatech.alomediabackend.user.entity.User;
 import com.peciatech.alomediabackend.user.repository.UserRepository;
@@ -24,6 +28,8 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final ProjectHistoryService projectHistoryService;
+    private final ProjectHistoryRepository projectHistoryRepository;
 
     public ProjectResponse createProject(CreateProjectRequest request, String requesterEmail) {
         User owner = userRepository.findByEmail(requesterEmail)
@@ -35,7 +41,10 @@ public class ProjectService {
                 .setOwner(owner)
                 .build();
 
-        return toResponse(projectRepository.save(project));
+        Project saved = projectRepository.save(project);
+        projectHistoryService.executeCommand(
+                new CreateProjectHistoryCommand(saved.getId(), owner.getId(), null, projectHistoryRepository));
+        return toResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -84,7 +93,10 @@ public class ProjectService {
             project.setStatus(request.getStatus());
         }
 
-        return toResponse(projectRepository.save(project));
+        Project saved = projectRepository.save(project);
+        projectHistoryService.executeCommand(
+                new EditProjectHistoryCommand(projectId, user.getId(), null, projectHistoryRepository));
+        return toResponse(saved);
     }
 
     public void deleteProject(Long projectId, String requesterEmail) {
