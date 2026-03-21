@@ -1,6 +1,6 @@
 package com.peciatech.alomediabackend.security.jwt;
 
-import com.peciatech.alomediabackend.entity.User;
+import com.peciatech.alomediabackend.user.entity.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
