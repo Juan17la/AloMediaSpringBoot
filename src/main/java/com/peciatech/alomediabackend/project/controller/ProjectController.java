@@ -1,5 +1,7 @@
 package com.peciatech.alomediabackend.project.controller;
 
+import com.peciatech.alomediabackend.notification.ProjectNotificationService;
+import com.peciatech.alomediabackend.notification.dto.request.ShareNotificationRequest;
 import com.peciatech.alomediabackend.project.dto.request.CreateProjectRequest;
 import com.peciatech.alomediabackend.project.dto.request.UpdateProjectRequest;
 import com.peciatech.alomediabackend.project.dto.response.ProjectResponse;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final ProjectNotificationService projectNotificationService;
 
     @PostMapping
     public ResponseEntity<ProjectResponse> createProject(
@@ -57,5 +60,14 @@ public class ProjectController {
             @AuthenticationPrincipal UserDetails userDetails) {
         projectService.deleteProject(id, userDetails.getUsername());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/")
+    public ResponseEntity<Void> shareProjectTest(
+            @PathVariable Long id,
+            @Valid @RequestBody ShareNotificationRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        projectNotificationService.shareProject(id, userDetails.getUsername(), request.getSharedWithEmail());
+        return ResponseEntity.ok().build();
     }
 }
