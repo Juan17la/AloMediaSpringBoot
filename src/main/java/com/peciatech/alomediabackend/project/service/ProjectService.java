@@ -63,7 +63,7 @@ public class ProjectService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ProjectResponse> listProjects(String requesterEmail, Pageable pageable) {
+    public Page<ProjectResponse> listOwnedProjects(String requesterEmail, Pageable pageable) {
         User user = userRepository.findByEmail(requesterEmail)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + requesterEmail));
 
