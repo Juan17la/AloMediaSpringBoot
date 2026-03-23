@@ -1,11 +1,11 @@
 package com.peciatech.alomediabackend.project.controller;
 
-import com.peciatech.alomediabackend.notification.ProjectNotificationService;
-import com.peciatech.alomediabackend.notification.dto.request.ShareNotificationRequest;
 import com.peciatech.alomediabackend.project.dto.request.CreateProjectRequest;
+import com.peciatech.alomediabackend.project.dto.request.ShareProjectRequest;
 import com.peciatech.alomediabackend.project.dto.request.UpdateProjectRequest;
 import com.peciatech.alomediabackend.project.dto.response.ProjectResponse;
 import com.peciatech.alomediabackend.project.service.ProjectService;
+import com.peciatech.alomediabackend.project.service.ProjectSharingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 public class ProjectController {
 
     private final ProjectService projectService;
-    private final ProjectNotificationService projectNotificationService;
+    private final ProjectSharingService projectSharingService;
 
     @PostMapping
     public ResponseEntity<ProjectResponse> createProject(
@@ -40,10 +40,17 @@ public class ProjectController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<ProjectResponse>> listProjects(
+    public ResponseEntity<Page<ProjectResponse>> listOwnedProjects(
             Pageable pageable,
             @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(projectService.listProjects(userDetails.getUsername(), pageable));
+        return ResponseEntity.ok(projectService.listOwnedProjects(userDetails.getUsername(), pageable));
+    }
+
+    @GetMapping("/shared")
+    public ResponseEntity<Page<ProjectResponse>> listSharedProjects(
+            Pageable pageable,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(projectSharingService.listSharedProjects(userDetails.getUsername(), pageable));
     }
 
     @PatchMapping("/{id}")
@@ -62,12 +69,12 @@ public class ProjectController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/{id}/")
-    public ResponseEntity<Void> shareProjectTest(
+    @PostMapping("/{id}/share")
+    public ResponseEntity<Void> shareProject(
             @PathVariable Long id,
-            @Valid @RequestBody ShareNotificationRequest request,
+            @Valid @RequestBody ShareProjectRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
-        projectNotificationService.shareProject(id, userDetails.getUsername(), request.getSharedWithEmail());
+        projectSharingService.shareProject(id, userDetails.getUsername(), request.getSharedWithEmail());
         return ResponseEntity.ok().build();
     }
 }
