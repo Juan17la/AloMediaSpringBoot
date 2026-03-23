@@ -45,6 +45,12 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex,
+                                                                HttpServletRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+    }
+
     @ExceptionHandler(RecoveryTokenNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleTokenNotFound(RecoveryTokenNotFoundException ex,
                                                               HttpServletRequest request) {

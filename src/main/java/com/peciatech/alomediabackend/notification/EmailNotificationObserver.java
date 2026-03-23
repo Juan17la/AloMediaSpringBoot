@@ -15,7 +15,7 @@ public class EmailNotificationObserver implements NotificationObserver {
 
     @Override
     public void onNotify(NotificationEvent event) {
-        String message = "The project [projectId: " + event.getProjectId() + "] was shared with you by "
+        String message = "A project was shared with you by "
                 + event.getSharedByUserEmail() + ".";
 
         notificationRepository.save(Notification.builder()
@@ -27,7 +27,7 @@ public class EmailNotificationObserver implements NotificationObserver {
 
         emailService.sendEmail(
                 event.getSharedWithUserEmail(),
-                "A project was shared with you",
+                event.getSharedByUserEmail() + " has shared a project with you",
                 message
         );
     }
