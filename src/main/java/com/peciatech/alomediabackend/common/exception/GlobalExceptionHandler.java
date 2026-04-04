@@ -11,6 +11,10 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import com.peciatech.alomediabackend.common.exception.UnsupportedAudioTypeException;
+import com.peciatech.alomediabackend.common.exception.FileTooLargeException;
+import com.peciatech.alomediabackend.common.exception.FlaskServiceException;
+import com.peciatech.alomediabackend.common.exception.FlaskServiceUnavailableException;
 
 import java.time.Instant;
 import java.util.List;
@@ -91,6 +95,32 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleOAuth2(OAuth2AuthenticationException ex,
                                                        HttpServletRequest request) {
         return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
+    }
+
+    // AI / Flask exceptions
+
+    @ExceptionHandler(UnsupportedAudioTypeException.class)
+    public ResponseEntity<ErrorResponse> handleUnsupportedAudioType(UnsupportedAudioTypeException ex,
+                                                                     HttpServletRequest request) {
+        return buildResponse(HttpStatus.UNSUPPORTED_MEDIA_TYPE, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(FileTooLargeException.class)
+    public ResponseEntity<ErrorResponse> handleFileTooLarge(FileTooLargeException ex,
+                                                             HttpServletRequest request) {
+        return buildResponse(HttpStatus.PAYLOAD_TOO_LARGE, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(FlaskServiceException.class)
+    public ResponseEntity<ErrorResponse> handleFlaskService(FlaskServiceException ex,
+                                                             HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_GATEWAY, "Flask service error: " + ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(FlaskServiceUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleFlaskServiceUnavailable(FlaskServiceUnavailableException ex,
+                                                                        HttpServletRequest request) {
+        return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), request);
     }
 
     // Spring / framework exceptions

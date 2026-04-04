@@ -52,6 +52,7 @@ public class SecurityConfig {
                         .requestMatchers("/oauth2/authorize/**").permitAll()
                         .requestMatchers("/login/oauth2/code/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/auth/me").permitAll()
+                        .requestMatchers("/ai/audio/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
