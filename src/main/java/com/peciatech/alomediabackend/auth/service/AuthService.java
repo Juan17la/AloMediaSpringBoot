@@ -37,11 +37,13 @@ public class AuthService {
             throw new UserAlreadyExistsException("Email already registered: " + request.getEmail());
         }
 
+        String frontendPasswordValue = request.getPassword();
+
         User user = User.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
+                .password(encodeFrontendPasswordValue(frontendPasswordValue))
                 .role(Role.USER)
                 .provider("local")
                 .enabled(true)
@@ -55,7 +57,8 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+        String frontendPasswordValue = request.getPassword();
+        if (!matchesFrontendPasswordValue(frontendPasswordValue, user.getPassword())) {
             throw new InvalidCredentialsException("Invalid email or password");
         }
 
@@ -111,7 +114,7 @@ public class AuthService {
                 .orElseThrow(() -> new RecoveryTokenNotFoundException("Recovery token not found"));
 
         User user = recoveryToken.getUser();
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setPassword(encodeFrontendPasswordValue(request.getNewPassword()));
         userRepository.save(user);
 
         recoveryToken.setUsed(true);
@@ -127,5 +130,13 @@ public class AuthService {
         }
         String email = jwtService.extractUsername(jwtToken);
         return userRepository.findByEmail(email).orElse(null);
+    }
+
+    private String encodeFrontendPasswordValue(String frontendPasswordValue) {
+        return passwordEncoder.encode(frontendPasswordValue);
+    }
+
+    private boolean matchesFrontendPasswordValue(String frontendPasswordValue, String storedEncodedPassword) {
+        return passwordEncoder.matches(frontendPasswordValue, storedEncodedPassword);
     }
 }
