@@ -12,6 +12,8 @@ public interface ProjectShareRepository extends JpaRepository<ProjectShare, Long
 
     boolean existsByProjectIdAndSharedWithId(Long projectId, Long sharedWithId);
 
+    long deleteByProjectId(Long projectId);
+
     @Query("SELECT ps.project FROM ProjectShare ps WHERE ps.sharedWith.id = :userId")
     Page<Project> findSharedProjectsByUserId(@Param("userId") Long userId, Pageable pageable);
 }
