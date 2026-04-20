@@ -9,7 +9,10 @@ import com.peciatech.alomediabackend.project.history.ProjectHistoryRepository;
 import com.peciatech.alomediabackend.project.history.ProjectHistoryService;
 import com.peciatech.alomediabackend.project.history.command.CreateProjectHistoryCommand;
 import com.peciatech.alomediabackend.project.history.command.EditProjectHistoryCommand;
+import com.peciatech.alomediabackend.project.media.ProjectMediaSyncService;
+import com.peciatech.alomediabackend.project.media.StorageBinaryResource;
 import com.peciatech.alomediabackend.project.repository.ProjectRepository;
+import com.peciatech.alomediabackend.project.repository.ProjectShareRepository;
 import com.peciatech.alomediabackend.user.entity.User;
 import com.peciatech.alomediabackend.user.repository.UserRepository;
 import com.peciatech.alomediabackend.common.exception.ProjectNotFoundException;
@@ -30,7 +33,10 @@ public class ProjectService {
     private final ApplicationEventPublisher eventPublisher;
     private final ProjectHistoryService projectHistoryService;
     private final ProjectHistoryRepository projectHistoryRepository;
+    private final ProjectMediaSyncService projectMediaSyncService;
+    private final ProjectShareRepository projectShareRepository;
 
+    @Transactional
     public ProjectResponse createProject(CreateProjectRequest request, String requesterEmail) {
         User owner = userRepository.findByEmail(requesterEmail)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + requesterEmail));
@@ -42,6 +48,9 @@ public class ProjectService {
                 .build();
 
         Project saved = projectRepository.save(project);
+        String syncedTimeline = projectMediaSyncService.syncOnSave(saved, null, saved.getTimelineData());
+        saved.setTimelineData(syncedTimeline);
+        saved = projectRepository.save(saved);
         projectHistoryService.executeCommand(
                 new CreateProjectHistoryCommand(saved.getId(), owner.getId(), null, projectHistoryRepository));
         return toResponse(saved);
@@ -59,7 +68,9 @@ public class ProjectService {
             throw new ProjectNotFoundException(projectId);
         }
 
-        return toResponse(project);
+        ProjectResponse response = toResponse(project);
+        response.setTimelineData(projectMediaSyncService.enrichTimelineWithDeliveryUrls(project, project.getTimelineData()));
+        return response;
     }
 
     @Transactional(readOnly = true)
@@ -87,7 +98,12 @@ public class ProjectService {
             project.setName(request.getName());
         }
         if (request.getTimelineData() != null) {
-            project.setTimelineData(request.getTimelineData());
+            String syncedTimeline = projectMediaSyncService.syncOnSave(
+                    project,
+                    project.getTimelineData(),
+                    request.getTimelineData()
+            );
+            project.setTimelineData(syncedTimeline);
         }
         if (request.getStatus() != null) {
             project.setStatus(request.getStatus());
@@ -99,15 +115,37 @@ public class ProjectService {
         return toResponse(saved);
     }
 
+    @Transactional
     public void deleteProject(Long projectId, String requesterEmail) {
         User user = userRepository.findByEmail(requesterEmail)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + requesterEmail));
 
-        if (!projectRepository.existsByIdAndOwnerId(projectId, user.getId())) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ProjectNotFoundException(projectId));
+
+        if (!project.getOwner().getId().equals(user.getId())) {
             throw new ProjectNotFoundException(projectId);
         }
 
-        projectRepository.deleteById(projectId);
+        projectMediaSyncService.deleteAllProjectMedia(project.getTimelineData());
+        projectShareRepository.deleteByProjectId(projectId);
+        projectHistoryRepository.deleteByProjectId(projectId);
+        projectRepository.delete(project);
+    }
+
+    @Transactional(readOnly = true)
+    public StorageBinaryResource getProjectMedia(Long projectId, String mediaId, String requesterEmail) {
+        User user = userRepository.findByEmail(requesterEmail)
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + requesterEmail));
+
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ProjectNotFoundException(projectId));
+
+        if (!project.getOwner().getId().equals(user.getId())) {
+            throw new ProjectNotFoundException(projectId);
+        }
+
+        return projectMediaSyncService.loadMediaForProject(project, mediaId);
     }
 
     private ProjectResponse toResponse(Project project) {

@@ -8,5 +8,7 @@ public interface ProjectHistoryRepository extends JpaRepository<ProjectHistory, 
 
     List<ProjectHistory> findAllByProjectId(Long projectId);
 
+    long deleteByProjectId(Long projectId);
+
     long countByEventType(EventType eventType);
 }
