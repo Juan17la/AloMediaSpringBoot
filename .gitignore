@@ -31,3 +31,4 @@ build/
 
 ### VS Code ###
 .vscode/
+src/test/java/com/peciatech/alomediabackend/project/media/BackblazeB2StorageServiceTest.java
