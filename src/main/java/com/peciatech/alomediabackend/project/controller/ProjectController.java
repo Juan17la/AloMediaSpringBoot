@@ -4,13 +4,16 @@ import com.peciatech.alomediabackend.project.dto.request.CreateProjectRequest;
 import com.peciatech.alomediabackend.project.dto.request.ShareProjectRequest;
 import com.peciatech.alomediabackend.project.dto.request.UpdateProjectRequest;
 import com.peciatech.alomediabackend.project.dto.response.ProjectResponse;
+import com.peciatech.alomediabackend.project.media.StorageBinaryResource;
 import com.peciatech.alomediabackend.project.service.ProjectService;
 import com.peciatech.alomediabackend.project.service.ProjectSharingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -37,6 +40,22 @@ public class ProjectController {
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(projectService.getProject(id, userDetails.getUsername()));
+    }
+
+    @GetMapping("/{id}/media/{mediaId}")
+    public ResponseEntity<byte[]> getProjectMedia(
+            @PathVariable Long id,
+            @PathVariable String mediaId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        StorageBinaryResource resource = projectService.getProjectMedia(id, mediaId, userDetails.getUsername());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(resource.contentType()));
+        headers.set(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.fileName() + "\"");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(resource.data());
     }
 
     @GetMapping
