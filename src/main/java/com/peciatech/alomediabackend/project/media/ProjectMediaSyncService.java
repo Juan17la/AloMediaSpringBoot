@@ -172,8 +172,12 @@ public class ProjectMediaSyncService {
     }
 
     public StorageBinaryResource loadMediaForProject(Project project, String mediaId) {
+        return loadMediaForProject(project, project.getTimelineData(), mediaId);
+    }
+
+    public StorageBinaryResource loadMediaForProject(Project project, String timelineData, String mediaId) {
         try {
-            JsonNode root = objectMapper.readTree(project.getTimelineData());
+            JsonNode root = objectMapper.readTree(timelineData);
             JsonNode mediaArray = root.path("media");
             if (!mediaArray.isArray()) {
                 throw new ResourceNotFoundException("No media entries were found for this project");
