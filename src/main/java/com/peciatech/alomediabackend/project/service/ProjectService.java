@@ -34,6 +34,7 @@ public class ProjectService {
     private final ProjectHistoryService projectHistoryService;
     private final ProjectHistoryRepository projectHistoryRepository;
     private final ProjectMediaSyncService projectMediaSyncService;
+    private final ProjectTimelinePersistenceService projectTimelinePersistenceService;
     private final ProjectShareRepository projectShareRepository;
 
     @Transactional
@@ -41,19 +42,21 @@ public class ProjectService {
         User owner = userRepository.findByEmail(requesterEmail)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + requesterEmail));
 
+        String normalizedTimeline = projectTimelinePersistenceService.normalizeIncomingTimeline(request.getTimelineData());
+
         Project project = new ProjectBuilder()
                 .setName(request.getName())
-                .setTimelineData(request.getTimelineData())
+            .setTimelineData(normalizedTimeline)
                 .setOwner(owner)
                 .build();
 
         Project saved = projectRepository.save(project);
-        String syncedTimeline = projectMediaSyncService.syncOnSave(saved, null, saved.getTimelineData());
-        saved.setTimelineData(syncedTimeline);
+        String syncedTimeline = projectMediaSyncService.syncOnSave(saved, null, normalizedTimeline);
+        projectTimelinePersistenceService.persistSplitTimeline(saved, syncedTimeline);
         saved = projectRepository.save(saved);
         projectHistoryService.executeCommand(
                 new CreateProjectHistoryCommand(saved.getId(), owner.getId(), null, projectHistoryRepository));
-        return toResponse(saved);
+        return toResponse(saved, syncedTimeline);
     }
 
     @Transactional(readOnly = true)
@@ -68,8 +71,9 @@ public class ProjectService {
             throw new ProjectNotFoundException(projectId);
         }
 
-        ProjectResponse response = toResponse(project);
-        response.setTimelineData(projectMediaSyncService.enrichTimelineWithDeliveryUrls(project, project.getTimelineData()));
+        String fullTimeline = projectTimelinePersistenceService.buildFullTimeline(project);
+        ProjectResponse response = toResponse(project, fullTimeline);
+        response.setTimelineData(projectMediaSyncService.enrichTimelineWithDeliveryUrls(project, fullTimeline));
         return response;
     }
 
@@ -97,13 +101,16 @@ public class ProjectService {
         if (request.getName() != null) {
             project.setName(request.getName());
         }
+        String responseTimeline = null;
         if (request.getTimelineData() != null) {
+            String previousTimeline = projectTimelinePersistenceService.buildFullTimeline(project);
             String syncedTimeline = projectMediaSyncService.syncOnSave(
                     project,
-                    project.getTimelineData(),
+                    previousTimeline,
                     request.getTimelineData()
             );
-            project.setTimelineData(syncedTimeline);
+            projectTimelinePersistenceService.persistSplitTimeline(project, syncedTimeline);
+            responseTimeline = syncedTimeline;
         }
         if (request.getStatus() != null) {
             project.setStatus(request.getStatus());
@@ -112,7 +119,7 @@ public class ProjectService {
         Project saved = projectRepository.save(project);
         projectHistoryService.executeCommand(
                 new EditProjectHistoryCommand(projectId, user.getId(), null, projectHistoryRepository));
-        return toResponse(saved);
+        return responseTimeline != null ? toResponse(saved, responseTimeline) : toResponse(saved);
     }
 
     @Transactional
@@ -127,9 +134,11 @@ public class ProjectService {
             throw new ProjectNotFoundException(projectId);
         }
 
-        projectMediaSyncService.deleteAllProjectMedia(project.getTimelineData());
+        String fullTimeline = projectTimelinePersistenceService.buildFullTimeline(project);
+        projectMediaSyncService.deleteAllProjectMedia(fullTimeline);
         projectShareRepository.deleteByProjectId(projectId);
         projectHistoryRepository.deleteByProjectId(projectId);
+        projectTimelinePersistenceService.deleteByProjectId(projectId);
         projectRepository.delete(project);
     }
 
@@ -145,15 +154,21 @@ public class ProjectService {
             throw new ProjectNotFoundException(projectId);
         }
 
-        return projectMediaSyncService.loadMediaForProject(project, mediaId);
+        String fullTimeline = projectTimelinePersistenceService.buildFullTimeline(project);
+        return projectMediaSyncService.loadMediaForProject(project, fullTimeline, mediaId);
     }
 
     private ProjectResponse toResponse(Project project) {
+        String fullTimeline = projectTimelinePersistenceService.buildFullTimeline(project);
+        return toResponse(project, fullTimeline);
+    }
+
+    private ProjectResponse toResponse(Project project, String fullTimeline) {
         ProjectResponse response = new ProjectResponse();
         response.setId(project.getId());
         response.setName(project.getName());
         response.setStatus(project.getStatus());
-        response.setTimelineData(project.getTimelineData());
+        response.setTimelineData(fullTimeline);
         response.setOwnerId(project.getOwner().getId());
         response.setCreatedAt(project.getCreatedAt());
         response.setUpdatedAt(project.getUpdatedAt());

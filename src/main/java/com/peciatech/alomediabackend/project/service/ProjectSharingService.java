@@ -30,6 +30,7 @@ public class ProjectSharingService {
     private final ProjectNotificationService projectNotificationService;
     private final ProjectHistoryService projectHistoryService;
     private final ProjectHistoryRepository projectHistoryRepository;
+    private final ProjectTimelinePersistenceService projectTimelinePersistenceService;
 
     @Transactional
     public void shareProject(Long projectId, String sharedByEmail, String sharedWithEmail) {
@@ -76,7 +77,7 @@ public class ProjectSharingService {
         response.setId(project.getId());
         response.setName(project.getName());
         response.setStatus(project.getStatus());
-        response.setTimelineData(project.getTimelineData());
+        response.setTimelineData(projectTimelinePersistenceService.buildFullTimeline(project));
         response.setOwnerId(project.getOwner().getId());
         response.setCreatedAt(project.getCreatedAt());
         response.setUpdatedAt(project.getUpdatedAt());
