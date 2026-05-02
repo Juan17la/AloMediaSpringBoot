@@ -67,7 +67,7 @@ public class ProjectService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ProjectNotFoundException(projectId));
 
-        if (!project.getOwner().getId().equals(user.getId())) {
+        if (!hasProjectAccess(project, user)) {
             throw new ProjectNotFoundException(projectId);
         }
 
@@ -91,12 +91,12 @@ public class ProjectService {
         User user = userRepository.findByEmail(requesterEmail)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + requesterEmail));
 
-        if (!projectRepository.existsByIdAndOwnerId(projectId, user.getId())) {
-            throw new ProjectNotFoundException(projectId);
-        }
-
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ProjectNotFoundException(projectId));
+
+        if (!hasProjectAccess(project, user)) {
+            throw new ProjectNotFoundException(projectId);
+        }
 
         if (request.getName() != null) {
             project.setName(request.getName());
@@ -150,7 +150,7 @@ public class ProjectService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ProjectNotFoundException(projectId));
 
-        if (!project.getOwner().getId().equals(user.getId())) {
+        if (!hasProjectAccess(project, user)) {
             throw new ProjectNotFoundException(projectId);
         }
 
@@ -173,5 +173,12 @@ public class ProjectService {
         response.setCreatedAt(project.getCreatedAt());
         response.setUpdatedAt(project.getUpdatedAt());
         return response;
+    }
+
+    private boolean hasProjectAccess(Project project, User user) {
+        if (project.getOwner().getId().equals(user.getId())) {
+            return true;
+        }
+        return projectShareRepository.existsByProjectIdAndSharedWithId(project.getId(), user.getId());
     }
 }
