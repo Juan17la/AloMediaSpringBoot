@@ -5,6 +5,7 @@ import com.peciatech.alomediabackend.project.history.ProjectHistoryRepository;
 import com.peciatech.alomediabackend.project.repository.ProjectRepository;
 import com.peciatech.alomediabackend.report.ReportFactory;
 import com.peciatech.alomediabackend.report.ReportFactoryProvider;
+import com.peciatech.alomediabackend.report.ReportFormat;
 import com.peciatech.alomediabackend.report.dto.response.ReportData;
 import com.peciatech.alomediabackend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,7 @@ public class ReportService {
     private final ProjectHistoryRepository projectHistoryRepository;
     private final ReportFactoryProvider reportFactoryProvider;
 
-    public Object generateReport(String format) {
+    public Object generateReport(ReportFormat format) {
         long totalUsers = userRepository.count();
         long totalProjects = projectRepository.count();
         long totalProjectsCreated = projectHistoryRepository.countByEventType(EventType.CREATE);
