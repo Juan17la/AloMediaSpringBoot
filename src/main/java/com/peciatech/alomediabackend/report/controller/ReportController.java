@@ -1,5 +1,6 @@
 package com.peciatech.alomediabackend.report.controller;
 
+import com.peciatech.alomediabackend.report.ReportFormat;
 import com.peciatech.alomediabackend.report.service.ReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -21,9 +22,10 @@ public class ReportController {
 
     @GetMapping
     public ResponseEntity<?> getReport(@RequestParam(defaultValue = "JSON") String format) {
-        Object result = reportService.generateReport(format);
+        ReportFormat reportFormat = ReportFormat.fromString(format);
+        Object result = reportService.generateReport(reportFormat);
 
-        if ("CSV".equalsIgnoreCase(format)) {
+        if (reportFormat == ReportFormat.CSV) {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.parseMediaType("text/csv"));
             headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"report.csv\"");
