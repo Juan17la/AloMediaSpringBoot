@@ -56,7 +56,7 @@ public class AuthController {
     public ResponseEntity<Void> requestRecovery(@Valid @RequestBody RecoverRequestDTO request) {
         try {
             authService.requestPasswordRecovery(request.getEmail());
-        } catch (Exception ignored) {
+        } catch (com.peciatech.alomediabackend.common.exception.UserNotFoundException ex) {
             // Do not reveal whether the email exists
         }
         return ResponseEntity.ok().build();
@@ -64,12 +64,7 @@ public class AuthController {
 
     @GetMapping("/recover/validate")
     public ResponseEntity<RecoveryValidationResponse> validateToken(@RequestParam String token) {
-        boolean valid;
-        try {
-            valid = authService.validateRecoveryToken(token);
-        } catch (Exception e) {
-            valid = false;
-        }
+        boolean valid = authService.validateRecoveryToken(token);
         return ResponseEntity.ok(RecoveryValidationResponse.builder().valid(valid).build());
     }
 

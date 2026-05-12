@@ -139,35 +139,46 @@ public class ProjectMediaSyncService {
             if (!(root instanceof ObjectNode rootObject)) {
                 return timelineData;
             }
-
-            JsonNode mediaNode = rootObject.path("media");
-            if (!(mediaNode instanceof ArrayNode mediaArray)) {
-                return timelineData;
-            }
-
-            for (JsonNode node : mediaArray) {
-                if (!(node instanceof ObjectNode mediaObject)) {
-                    continue;
-                }
-
-                String mediaId = readMediaId(mediaObject);
-                String storageKey = text(mediaObject, "storageKey");
-                if (!StringUtils.hasText(mediaId) || !StringUtils.hasText(storageKey)) {
-                    continue;
-                }
-
-                String deliveryUrl = "/projects/" + project.getId() + "/media/" + URLEncoder.encode(mediaId, StandardCharsets.UTF_8);
-                mediaObject.put("deliveryUrl", deliveryUrl);
-
-                String src = text(mediaObject, "src");
-                if (!StringUtils.hasText(src) || src.startsWith("blob:")) {
-                    mediaObject.put("src", deliveryUrl);
-                }
-            }
-
-            return objectMapper.writeValueAsString(rootObject);
+            return objectMapper.writeValueAsString(enrichTimelineJsonNode(project, rootObject));
         } catch (Exception ex) {
             throw new RuntimeException("Failed to enrich media delivery URLs", ex);
+        }
+    }
+
+    public ObjectNode enrichTimelineJsonNode(Project project, ObjectNode rootObject) {
+        JsonNode mediaNode = rootObject.path("media");
+        if (!(mediaNode instanceof ArrayNode mediaArray)) {
+            return rootObject;
+        }
+
+        for (JsonNode node : mediaArray) {
+            if (!(node instanceof ObjectNode mediaObject)) {
+                continue;
+            }
+
+            String mediaId = readMediaId(mediaObject);
+            String storageKey = text(mediaObject, "storageKey");
+            if (!StringUtils.hasText(mediaId) || !StringUtils.hasText(storageKey)) {
+                continue;
+            }
+
+            String deliveryUrl = "/projects/" + project.getId() + "/media/" + URLEncoder.encode(mediaId, StandardCharsets.UTF_8);
+            mediaObject.put("deliveryUrl", deliveryUrl);
+
+            String src = text(mediaObject, "src");
+            if (!StringUtils.hasText(src) || src.startsWith("blob:")) {
+                mediaObject.put("src", deliveryUrl);
+            }
+        }
+
+        return rootObject;
+    }
+
+    public String serializeEnrichedTimeline(Project project, ObjectNode timelineNode) {
+        try {
+            return objectMapper.writeValueAsString(enrichTimelineJsonNode(project, timelineNode));
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to serialize enriched timeline", ex);
         }
     }
 

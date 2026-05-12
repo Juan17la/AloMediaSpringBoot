@@ -6,6 +6,8 @@ import com.peciatech.alomediabackend.notification.dto.response.NotificationRespo
 import com.peciatech.alomediabackend.notification.entity.Notification;
 import com.peciatech.alomediabackend.notification.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,11 +18,9 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
 
-    public List<NotificationResponse> getMyNotifications(String email) {
-        return notificationRepository.findByRecipientEmailOrderByCreatedAtDesc(email)
-                .stream()
-                .map(this::toResponse)
-                .toList();
+    public Page<NotificationResponse> getMyNotifications(String email, Pageable pageable) {
+        return notificationRepository.findByRecipientEmailOrderByCreatedAtDesc(email, pageable)
+                .map(this::toResponse);
     }
 
     public List<NotificationResponse> getUnread(String email) {

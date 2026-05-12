@@ -18,7 +18,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -37,13 +39,57 @@ public class ProjectTimelinePersistenceService {
 
     public String buildFullTimeline(Project project) {
         try {
+            ObjectNode merged = buildFullTimelineNode(project);
+            return objectMapper.writeValueAsString(merged);
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to rebuild full project timeline", ex);
+        }
+    }
+
+    public ObjectNode buildFullTimelineNode(Project project) {
+        JsonNode metadataRoot = parseObjectOrNull(project.getTimelineData());
+        if (metadataRoot == null) {
+            try {
+                return (ObjectNode) objectMapper.readTree(DEFAULT_FULL_TIMELINE);
+            } catch (Exception ex) {
+                throw new RuntimeException("Failed to parse default timeline", ex);
+            }
+        }
+
+        JsonNode tracksNode = resolveTracksNode(project.getId(), metadataRoot);
+        JsonNode mediaNode = resolveMediaNode(project.getId(), metadataRoot);
+
+        ObjectNode merged = objectMapper.createObjectNode();
+        merged.setAll((ObjectNode) metadataRoot.deepCopy());
+        merged.set("tracks", tracksNode);
+        merged.set("media", mediaNode);
+        return merged;
+    }
+
+    public Map<Long, String> buildFullTimelinesForProjects(List<Project> projects) {
+        List<Long> projectIds = projects.stream().map(Project::getId).toList();
+
+        Map<Long, String> tracksMap = projectTracksRepository.findByProjectIdIn(projectIds).stream()
+                .collect(Collectors.toMap(t -> t.getProject().getId(), ProjectTracks::getTracksData, (a, b) -> a));
+
+        Map<Long, String> mediaMap = projectMediaRepository.findByProjectIdIn(projectIds).stream()
+                .collect(Collectors.toMap(m -> m.getProject().getId(), ProjectMedia::getMediaData, (a, b) -> a));
+
+        return projects.stream().collect(Collectors.toMap(
+                Project::getId,
+                p -> buildFullTimelineString(p, tracksMap.get(p.getId()), mediaMap.get(p.getId()))
+        ));
+    }
+
+    private String buildFullTimelineString(Project project, String tracksData, String mediaData) {
+        try {
             JsonNode metadataRoot = parseObjectOrNull(project.getTimelineData());
             if (metadataRoot == null) {
                 return DEFAULT_FULL_TIMELINE;
             }
 
-            JsonNode tracksNode = resolveTracksNode(project.getId(), metadataRoot);
-            JsonNode mediaNode = resolveMediaNode(project.getId(), metadataRoot);
+        JsonNode tracksNode = resolveTracksNode(metadataRoot, tracksData);
+        JsonNode mediaNode = resolveMediaNode(metadataRoot, mediaData);
 
             ObjectNode merged = objectMapper.createObjectNode();
             merged.setAll((ObjectNode) metadataRoot.deepCopy());
@@ -113,20 +159,26 @@ public class ProjectTimelinePersistenceService {
 
     private JsonNode resolveTracksNode(Long projectId, JsonNode metadataRoot) {
         ProjectTracks persistedTracks = projectTracksRepository.findByProjectId(projectId).orElse(null);
-        if (persistedTracks != null && StringUtils.hasText(persistedTracks.getTracksData())) {
-            return parseArrayOrEmpty(persistedTracks.getTracksData());
-        }
+        return resolveTracksNode(metadataRoot, persistedTracks != null ? persistedTracks.getTracksData() : null);
+    }
 
+    private JsonNode resolveTracksNode(JsonNode metadataRoot, String preloadedTracksData) {
+        if (StringUtils.hasText(preloadedTracksData)) {
+            return parseArrayOrEmpty(preloadedTracksData);
+        }
         JsonNode legacyTracks = metadataRoot.path("tracks");
         return legacyTracks.isArray() ? legacyTracks.deepCopy() : objectMapper.createArrayNode();
     }
 
     private JsonNode resolveMediaNode(Long projectId, JsonNode metadataRoot) {
         ProjectMedia persistedMedia = projectMediaRepository.findByProjectId(projectId).orElse(null);
-        if (persistedMedia != null && StringUtils.hasText(persistedMedia.getMediaData())) {
-            return parseArrayOrEmpty(persistedMedia.getMediaData());
-        }
+        return resolveMediaNode(metadataRoot, persistedMedia != null ? persistedMedia.getMediaData() : null);
+    }
 
+    private JsonNode resolveMediaNode(JsonNode metadataRoot, String preloadedMediaData) {
+        if (StringUtils.hasText(preloadedMediaData)) {
+            return parseArrayOrEmpty(preloadedMediaData);
+        }
         JsonNode legacyMedia = metadataRoot.path("media");
         return legacyMedia.isArray() ? legacyMedia.deepCopy() : objectMapper.createArrayNode();
     }

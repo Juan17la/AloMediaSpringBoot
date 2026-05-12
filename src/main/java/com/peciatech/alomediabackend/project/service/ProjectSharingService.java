@@ -4,6 +4,7 @@ import com.peciatech.alomediabackend.common.exception.ProjectNotFoundException;
 import com.peciatech.alomediabackend.common.exception.UnauthorizedException;
 import com.peciatech.alomediabackend.common.exception.UserNotFoundException;
 import com.peciatech.alomediabackend.notification.ProjectNotificationService;
+import com.peciatech.alomediabackend.project.dto.ProjectMapper;
 import com.peciatech.alomediabackend.project.dto.response.ProjectResponse;
 import com.peciatech.alomediabackend.project.entity.Project;
 import com.peciatech.alomediabackend.project.entity.ProjectShare;
@@ -20,6 +21,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
+
 @Service
 @RequiredArgsConstructor
 public class ProjectSharingService {
@@ -31,6 +34,7 @@ public class ProjectSharingService {
     private final ProjectHistoryService projectHistoryService;
     private final ProjectHistoryRepository projectHistoryRepository;
     private final ProjectTimelinePersistenceService projectTimelinePersistenceService;
+    private final ProjectMapper projectMapper;
 
     @Transactional
     public void shareProject(Long projectId, String sharedByEmail, String sharedWithEmail) {
@@ -68,19 +72,12 @@ public class ProjectSharingService {
         User user = userRepository.findByEmail(requesterEmail)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + requesterEmail));
 
-        return projectShareRepository.findSharedProjectsByUserId(user.getId(), pageable)
-                .map(this::toResponse);
-    }
+        Page<Project> projectPage = projectShareRepository.findSharedProjectsByUserId(user.getId(), pageable);
+        if (projectPage.isEmpty()) {
+            return Page.empty(pageable);
+        }
 
-    private ProjectResponse toResponse(Project project) {
-        ProjectResponse response = new ProjectResponse();
-        response.setId(project.getId());
-        response.setName(project.getName());
-        response.setStatus(project.getStatus());
-        response.setTimelineData(projectTimelinePersistenceService.buildFullTimeline(project));
-        response.setOwnerId(project.getOwner().getId());
-        response.setCreatedAt(project.getCreatedAt());
-        response.setUpdatedAt(project.getUpdatedAt());
-        return response;
+        Map<Long, String> timelines = projectTimelinePersistenceService.buildFullTimelinesForProjects(projectPage.getContent());
+        return projectPage.map(p -> projectMapper.toResponse(p, timelines.getOrDefault(p.getId(), projectTimelinePersistenceService.normalizeIncomingTimeline(null))));
     }
 }
