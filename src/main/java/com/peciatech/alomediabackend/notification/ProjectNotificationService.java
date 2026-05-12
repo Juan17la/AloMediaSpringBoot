@@ -12,12 +12,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProjectNotificationService implements NotificationObservable {
 
+    private final DbNotificationObserver dbNotificationObserver;
     private final EmailNotificationObserver emailNotificationObserver;
 
     private final List<NotificationObserver> observers = new ArrayList<>();
 
     @PostConstruct
     public void init() {
+        addObserver(dbNotificationObserver);
         addObserver(emailNotificationObserver);
     }
 
