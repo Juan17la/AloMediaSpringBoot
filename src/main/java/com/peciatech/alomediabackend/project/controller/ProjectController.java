@@ -4,6 +4,7 @@ import com.peciatech.alomediabackend.project.dto.request.CreateProjectRequest;
 import com.peciatech.alomediabackend.project.dto.request.ShareProjectRequest;
 import com.peciatech.alomediabackend.project.dto.request.UpdateProjectRequest;
 import com.peciatech.alomediabackend.project.dto.response.ProjectResponse;
+import com.peciatech.alomediabackend.project.dto.response.ProjectSummaryResponse;
 import com.peciatech.alomediabackend.project.media.StorageBinaryResource;
 import com.peciatech.alomediabackend.project.service.ProjectService;
 import com.peciatech.alomediabackend.project.service.ProjectSharingService;
@@ -59,14 +60,14 @@ public class ProjectController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<ProjectResponse>> listOwnedProjects(
+    public ResponseEntity<Page<ProjectSummaryResponse>> listOwnedProjects(
             Pageable pageable,
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(projectService.listOwnedProjects(userDetails.getUsername(), pageable));
     }
 
     @GetMapping("/shared")
-    public ResponseEntity<Page<ProjectResponse>> listSharedProjects(
+    public ResponseEntity<Page<ProjectSummaryResponse>> listSharedProjects(
             Pageable pageable,
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(projectSharingService.listSharedProjects(userDetails.getUsername(), pageable));
