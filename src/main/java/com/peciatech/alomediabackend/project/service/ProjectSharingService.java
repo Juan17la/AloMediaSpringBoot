@@ -4,7 +4,7 @@ import com.peciatech.alomediabackend.common.exception.ProjectNotFoundException;
 import com.peciatech.alomediabackend.common.exception.UnauthorizedException;
 import com.peciatech.alomediabackend.common.exception.UserNotFoundException;
 import com.peciatech.alomediabackend.notification.ProjectNotificationService;
-import com.peciatech.alomediabackend.project.dto.response.ProjectResponse;
+import com.peciatech.alomediabackend.project.dto.response.ProjectSummaryResponse;
 import com.peciatech.alomediabackend.project.entity.Project;
 import com.peciatech.alomediabackend.project.entity.ProjectShare;
 import com.peciatech.alomediabackend.project.history.ProjectHistoryRepository;
@@ -20,6 +20,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
+
 @Service
 @RequiredArgsConstructor
 public class ProjectSharingService {
@@ -30,7 +32,6 @@ public class ProjectSharingService {
     private final ProjectNotificationService projectNotificationService;
     private final ProjectHistoryService projectHistoryService;
     private final ProjectHistoryRepository projectHistoryRepository;
-    private final ProjectTimelinePersistenceService projectTimelinePersistenceService;
 
     @Transactional
     public void shareProject(Long projectId, String sharedByEmail, String sharedWithEmail) {
@@ -64,23 +65,10 @@ public class ProjectSharingService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ProjectResponse> listSharedProjects(String requesterEmail, Pageable pageable) {
+    public Page<ProjectSummaryResponse> listSharedProjects(String requesterEmail, Pageable pageable) {
         User user = userRepository.findByEmail(requesterEmail)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + requesterEmail));
 
-        return projectShareRepository.findSharedProjectsByUserId(user.getId(), pageable)
-                .map(this::toResponse);
-    }
-
-    private ProjectResponse toResponse(Project project) {
-        ProjectResponse response = new ProjectResponse();
-        response.setId(project.getId());
-        response.setName(project.getName());
-        response.setStatus(project.getStatus());
-        response.setTimelineData(projectTimelinePersistenceService.buildFullTimeline(project));
-        response.setOwnerId(project.getOwner().getId());
-        response.setCreatedAt(project.getCreatedAt());
-        response.setUpdatedAt(project.getUpdatedAt());
-        return response;
+        return projectShareRepository.findSharedProjectSummariesByUserId(user.getId(), pageable);
     }
 }

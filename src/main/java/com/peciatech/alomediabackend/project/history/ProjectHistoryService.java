@@ -8,9 +8,9 @@ import com.peciatech.alomediabackend.project.repository.ProjectRepository;
 import com.peciatech.alomediabackend.user.entity.User;
 import com.peciatech.alomediabackend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -25,7 +25,7 @@ public class ProjectHistoryService {
         return toResponse(history);
     }
 
-    public List<ProjectHistoryResponse> getHistory(Long projectId, String requesterEmail) {
+    public Page<ProjectHistoryResponse> getHistory(Long projectId, String requesterEmail, Pageable pageable) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ProjectNotFoundException(projectId));
 
@@ -36,9 +36,8 @@ public class ProjectHistoryService {
             throw new UnauthorizedException("Access denied to project history");
         }
 
-        return projectHistoryRepository.findAllByProjectId(projectId).stream()
-                .map(this::toResponse)
-                .toList();
+        return projectHistoryRepository.findAllByProjectId(projectId, pageable)
+                .map(this::toResponse);
     }
 
     private ProjectHistoryResponse toResponse(ProjectHistory history) {

@@ -1,9 +1,11 @@
 package com.peciatech.alomediabackend.project.service;
 
 import com.peciatech.alomediabackend.project.builder.ProjectBuilder;
+import com.peciatech.alomediabackend.project.dto.ProjectMapper;
 import com.peciatech.alomediabackend.project.dto.request.CreateProjectRequest;
 import com.peciatech.alomediabackend.project.dto.request.UpdateProjectRequest;
 import com.peciatech.alomediabackend.project.dto.response.ProjectResponse;
+import com.peciatech.alomediabackend.project.dto.response.ProjectSummaryResponse;
 import com.peciatech.alomediabackend.project.entity.Project;
 import com.peciatech.alomediabackend.project.history.ProjectHistoryRepository;
 import com.peciatech.alomediabackend.project.history.ProjectHistoryService;
@@ -18,11 +20,12 @@ import com.peciatech.alomediabackend.user.repository.UserRepository;
 import com.peciatech.alomediabackend.common.exception.ProjectNotFoundException;
 import com.peciatech.alomediabackend.common.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+
 
 @Service
 @RequiredArgsConstructor
@@ -30,12 +33,12 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
-    private final ApplicationEventPublisher eventPublisher;
     private final ProjectHistoryService projectHistoryService;
     private final ProjectHistoryRepository projectHistoryRepository;
     private final ProjectMediaSyncService projectMediaSyncService;
     private final ProjectTimelinePersistenceService projectTimelinePersistenceService;
     private final ProjectShareRepository projectShareRepository;
+    private final ProjectMapper projectMapper;
 
     @Transactional
     public ProjectResponse createProject(CreateProjectRequest request, String requesterEmail) {
@@ -56,7 +59,7 @@ public class ProjectService {
         saved = projectRepository.save(saved);
         projectHistoryService.executeCommand(
                 new CreateProjectHistoryCommand(saved.getId(), owner.getId(), null, projectHistoryRepository));
-        return toResponse(saved, syncedTimeline);
+        return projectMapper.toResponse(saved, syncedTimeline);
     }
 
     @Transactional(readOnly = true)
@@ -67,23 +70,21 @@ public class ProjectService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ProjectNotFoundException(projectId));
 
-        if (!project.getOwner().getId().equals(user.getId())) {
+        if (!hasProjectAccess(project, user)) {
             throw new ProjectNotFoundException(projectId);
         }
 
-        String fullTimeline = projectTimelinePersistenceService.buildFullTimeline(project);
-        ProjectResponse response = toResponse(project, fullTimeline);
-        response.setTimelineData(projectMediaSyncService.enrichTimelineWithDeliveryUrls(project, fullTimeline));
-        return response;
+        var timelineNode = projectTimelinePersistenceService.buildFullTimelineNode(project);
+        String timelineJson = projectMediaSyncService.serializeEnrichedTimeline(project, timelineNode);
+        return projectMapper.toResponse(project, timelineJson);
     }
 
     @Transactional(readOnly = true)
-    public Page<ProjectResponse> listOwnedProjects(String requesterEmail, Pageable pageable) {
+    public Page<ProjectSummaryResponse> listOwnedProjects(String requesterEmail, Pageable pageable) {
         User user = userRepository.findByEmail(requesterEmail)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + requesterEmail));
 
-        return projectRepository.findByOwnerId(user.getId(), pageable)
-                .map(this::toResponse);
+        return projectRepository.findSummariesByOwnerId(user.getId(), pageable);
     }
 
     @Transactional
@@ -91,12 +92,12 @@ public class ProjectService {
         User user = userRepository.findByEmail(requesterEmail)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + requesterEmail));
 
-        if (!projectRepository.existsByIdAndOwnerId(projectId, user.getId())) {
-            throw new ProjectNotFoundException(projectId);
-        }
-
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ProjectNotFoundException(projectId));
+
+        if (!hasProjectAccess(project, user)) {
+            throw new ProjectNotFoundException(projectId);
+        }
 
         if (request.getName() != null) {
             project.setName(request.getName());
@@ -119,7 +120,9 @@ public class ProjectService {
         Project saved = projectRepository.save(project);
         projectHistoryService.executeCommand(
                 new EditProjectHistoryCommand(projectId, user.getId(), null, projectHistoryRepository));
-        return responseTimeline != null ? toResponse(saved, responseTimeline) : toResponse(saved);
+        return responseTimeline != null
+                ? projectMapper.toResponse(saved, responseTimeline)
+                : projectMapper.toResponse(saved, projectTimelinePersistenceService.buildFullTimeline(saved));
     }
 
     @Transactional
@@ -130,7 +133,7 @@ public class ProjectService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ProjectNotFoundException(projectId));
 
-        if (!project.getOwner().getId().equals(user.getId())) {
+        if (!isProjectOwner(project, user)) {
             throw new ProjectNotFoundException(projectId);
         }
 
@@ -150,7 +153,7 @@ public class ProjectService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ProjectNotFoundException(projectId));
 
-        if (!project.getOwner().getId().equals(user.getId())) {
+        if (!hasProjectAccess(project, user)) {
             throw new ProjectNotFoundException(projectId);
         }
 
@@ -158,20 +161,14 @@ public class ProjectService {
         return projectMediaSyncService.loadMediaForProject(project, fullTimeline, mediaId);
     }
 
-    private ProjectResponse toResponse(Project project) {
-        String fullTimeline = projectTimelinePersistenceService.buildFullTimeline(project);
-        return toResponse(project, fullTimeline);
+    private boolean hasProjectAccess(Project project, User user) {
+        if (isProjectOwner(project, user)) {
+            return true;
+        }
+        return projectShareRepository.existsByProjectIdAndSharedWithId(project.getId(), user.getId());
     }
 
-    private ProjectResponse toResponse(Project project, String fullTimeline) {
-        ProjectResponse response = new ProjectResponse();
-        response.setId(project.getId());
-        response.setName(project.getName());
-        response.setStatus(project.getStatus());
-        response.setTimelineData(fullTimeline);
-        response.setOwnerId(project.getOwner().getId());
-        response.setCreatedAt(project.getCreatedAt());
-        response.setUpdatedAt(project.getUpdatedAt());
-        return response;
+    private boolean isProjectOwner(Project project, User user) {
+        return project.getOwner().getId().equals(user.getId());
     }
 }

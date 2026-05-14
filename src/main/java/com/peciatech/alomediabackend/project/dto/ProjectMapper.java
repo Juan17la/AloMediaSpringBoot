@@ -10,4 +10,10 @@ public interface ProjectMapper {
 
     @Mapping(source = "owner.id", target = "ownerId")
     ProjectResponse toResponse(Project project);
+
+    default ProjectResponse toResponse(Project project, String timelineData) {
+        ProjectResponse response = toResponse(project);
+        response.setTimelineData(timelineData);
+        return response;
+    }
 }

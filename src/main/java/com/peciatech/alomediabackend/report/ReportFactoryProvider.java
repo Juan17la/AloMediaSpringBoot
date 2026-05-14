@@ -1,6 +1,5 @@
 package com.peciatech.alomediabackend.report;
 
-import com.peciatech.alomediabackend.common.exception.InvalidReportFormatException;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -8,16 +7,16 @@ import java.util.Map;
 @Component
 public class ReportFactoryProvider {
 
-    private final Map<String, ReportFactory> factories = Map.of(
-            "JSON",    new JsonReportFactory(),
-            "CSV",     new CsvReportFactory(),
-            "SUMMARY", new SummaryReportFactory()
+    private final Map<ReportFormat, ReportFactory> factories = Map.of(
+            ReportFormat.JSON,    new JsonReportFactory(),
+            ReportFormat.CSV,     new CsvReportFactory(),
+            ReportFormat.SUMMARY, new SummaryReportFactory()
     );
 
-    public ReportFactory getFactory(String format) {
-        ReportFactory factory = factories.get(format.toUpperCase());
+    public ReportFactory getFactory(ReportFormat format) {
+        ReportFactory factory = factories.get(format);
         if (factory == null) {
-            throw new InvalidReportFormatException(format);
+            throw new IllegalStateException("No factory registered for format: " + format);
         }
         return factory;
     }

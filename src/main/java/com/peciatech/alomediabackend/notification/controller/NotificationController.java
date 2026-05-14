@@ -3,6 +3,8 @@ package com.peciatech.alomediabackend.notification.controller;
 import com.peciatech.alomediabackend.notification.dto.response.NotificationResponse;
 import com.peciatech.alomediabackend.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,9 +20,10 @@ public class NotificationController {
     private final NotificationService notificationService;
 
     @GetMapping
-    public ResponseEntity<List<NotificationResponse>> getMyNotifications(
+    public ResponseEntity<Page<NotificationResponse>> getMyNotifications(
+            Pageable pageable,
             @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(notificationService.getMyNotifications(userDetails.getUsername()));
+        return ResponseEntity.ok(notificationService.getMyNotifications(userDetails.getUsername(), pageable));
     }
 
     @GetMapping("/unread")
