@@ -249,7 +249,7 @@ public class ProjectTimelinePersistenceService {
             ObjectNode objectNode = (ObjectNode) node;
             StringBuilder builder = new StringBuilder();
             builder.append('{');
-            Iterator<Map.Entry<String, JsonNode>> fields = objectNode.fields();
+            java.util.Set<Map.Entry<String, JsonNode>> fields = objectNode.properties();
             fieldsToCanonical(builder, fields);
             builder.append('}');
             return builder.toString();
@@ -270,8 +270,8 @@ public class ProjectTimelinePersistenceService {
         return node.toString();
     }
 
-    private void fieldsToCanonical(StringBuilder builder, Iterator<Map.Entry<String, JsonNode>> fields) {
-        fieldsToStream(fields)
+    private void fieldsToCanonical(StringBuilder builder, java.util.Set<Map.Entry<String, JsonNode>> fields) {
+        fields.stream()
                 .sorted(Comparator.comparing(Map.Entry::getKey))
                 .forEach(entry -> {
                     if (builder.charAt(builder.length() - 1) != '{') {
@@ -280,11 +280,6 @@ public class ProjectTimelinePersistenceService {
                     builder.append('"').append(entry.getKey()).append('"').append(':');
                     builder.append(canonicalizeJson(entry.getValue()));
                 });
-    }
-
-    private java.util.stream.Stream<Map.Entry<String, JsonNode>> fieldsToStream(Iterator<Map.Entry<String, JsonNode>> fields) {
-        Iterable<Map.Entry<String, JsonNode>> iterable = () -> fields;
-        return java.util.stream.StreamSupport.stream(iterable.spliterator(), false);
     }
 
     private String sha256Hex(String content) {
