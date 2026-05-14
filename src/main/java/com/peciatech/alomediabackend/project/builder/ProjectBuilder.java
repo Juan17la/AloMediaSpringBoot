@@ -7,17 +7,11 @@ import com.peciatech.alomediabackend.user.entity.User;
 public class ProjectBuilder {
 
     private String name;
-    private String description;
     private String timelineData;
     private User owner;
 
     public ProjectBuilder setName(String name) {
         this.name = name;
-        return this;
-    }
-
-    public ProjectBuilder setDescription(String description) {
-        this.description = description;
         return this;
     }
 
