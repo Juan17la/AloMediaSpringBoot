@@ -5,6 +5,7 @@ import com.peciatech.alomediabackend.project.dto.ProjectMapper;
 import com.peciatech.alomediabackend.project.dto.request.CreateProjectRequest;
 import com.peciatech.alomediabackend.project.dto.request.UpdateProjectRequest;
 import com.peciatech.alomediabackend.project.dto.response.ProjectResponse;
+import com.peciatech.alomediabackend.project.dto.response.ProjectSummaryResponse;
 import com.peciatech.alomediabackend.project.entity.Project;
 import com.peciatech.alomediabackend.project.history.ProjectHistoryRepository;
 import com.peciatech.alomediabackend.project.history.ProjectHistoryService;
@@ -17,16 +18,14 @@ import com.peciatech.alomediabackend.project.repository.ProjectShareRepository;
 import com.peciatech.alomediabackend.user.entity.User;
 import com.peciatech.alomediabackend.user.repository.UserRepository;
 import com.peciatech.alomediabackend.common.exception.ProjectNotFoundException;
-import com.peciatech.alomediabackend.common.exception.UnauthorizedException;
 import com.peciatech.alomediabackend.common.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Map;
+
 
 @Service
 @RequiredArgsConstructor
@@ -34,7 +33,6 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
-    private final ApplicationEventPublisher eventPublisher;
     private final ProjectHistoryService projectHistoryService;
     private final ProjectHistoryRepository projectHistoryRepository;
     private final ProjectMediaSyncService projectMediaSyncService;
@@ -82,17 +80,11 @@ public class ProjectService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ProjectResponse> listOwnedProjects(String requesterEmail, Pageable pageable) {
+    public Page<ProjectSummaryResponse> listOwnedProjects(String requesterEmail, Pageable pageable) {
         User user = userRepository.findByEmail(requesterEmail)
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + requesterEmail));
 
-        Page<Project> projectPage = projectRepository.findByOwnerId(user.getId(), pageable);
-        if (projectPage.isEmpty()) {
-            return Page.empty(pageable);
-        }
-
-        Map<Long, String> timelines = projectTimelinePersistenceService.buildFullTimelinesForProjects(projectPage.getContent());
-        return projectPage.map(p -> projectMapper.toResponse(p, timelines.getOrDefault(p.getId(), projectTimelinePersistenceService.normalizeIncomingTimeline(null))));
+        return projectRepository.findSummariesByOwnerId(user.getId(), pageable);
     }
 
     @Transactional

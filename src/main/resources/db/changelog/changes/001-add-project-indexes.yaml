@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: peciatech
+      changes:
+        - createIndex:
+            tableName: projects
+            indexName: idx_projects_owner_id
+            columns:
+              - column:
+                  name: owner_id
+        - createIndex:
+            tableName: project_shares
+            indexName: idx_project_shares_shared_with_id
+            columns:
+              - column:
+                  name: shared_with_id
+        - createIndex:
+            tableName: project_shares
+            indexName: idx_project_shares_shared_by_id
+            columns:
+              - column:
+                  name: shared_by_id
