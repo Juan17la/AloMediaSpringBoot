@@ -1,6 +1,5 @@
 package com.peciatech.alomediabackend.common.exception;
 
-import com.peciatech.alomediabackend.common.exception.InvalidReportFormatException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -11,10 +10,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
-import com.peciatech.alomediabackend.common.exception.UnsupportedAudioTypeException;
-import com.peciatech.alomediabackend.common.exception.FileTooLargeException;
-import com.peciatech.alomediabackend.common.exception.FlaskServiceException;
-import com.peciatech.alomediabackend.common.exception.FlaskServiceUnavailableException;
 
 import java.time.Instant;
 import java.util.List;
@@ -108,7 +103,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(FileTooLargeException.class)
     public ResponseEntity<ErrorResponse> handleFileTooLarge(FileTooLargeException ex,
                                                              HttpServletRequest request) {
-        return buildResponse(HttpStatus.PAYLOAD_TOO_LARGE, ex.getMessage(), request);
+        return buildResponse(HttpStatus.CONTENT_TOO_LARGE, ex.getMessage(), request);
     }
 
     @ExceptionHandler(FlaskServiceException.class)
