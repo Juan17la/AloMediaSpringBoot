@@ -1,0 +1,4 @@
+databaseChangeLog:
+  - include:
+      file: changes/001-add-project-indexes.yaml
+      relativeToChangelogFile: true
